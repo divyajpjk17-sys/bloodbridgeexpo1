@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>BloodBridge | Life-Saving Blood Donation Network</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background: #f3f4f6; margin: 0; padding: 0; }
+    .screen { display: none; animation: fadeIn 0.3s ease-out; }
+    .screen.active { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .role-card { transition: all 0.2s ease; cursor: pointer; }
+    .role-card.selected { border-color: #B91C1C !important; background: #FEF2F2; }
+    .nav-item.active svg { transform: scale(1.05); color: #B91C1C; }
+    .nav-item.active span { color: #B91C1C; font-weight: 600; }
+    .urgency-pulse { animation: pulse-ring 1.2s cubic-bezier(0.4,0,0.6,1) infinite; }
+    @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 0.6; } 100% { transform: scale(1.6); opacity: 0; } }
+    input:focus, select:focus, textarea:focus { border-color: #B91C1C; box-shadow: 0 0 0 3px rgba(185,28,28,0.1); outline: none; }
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); align-items: center; justify-content: center; z-index: 1000; }
+    .modal.active { display: flex; }
+    .modal-content { background: white; border-radius: 1.5rem; max-width: 420px; width: 90%; max-height: 85vh; overflow-y: auto; padding: 1.5rem; }
+    .map-placeholder { background: #e2e8f0; border-radius: 1rem; overflow: hidden; height: 160px; position: relative; }
+    iframe { width: 100%; height: 100%; border: 0; }
+  </style>
+</head>
+<body class="h-full flex items-center justify-center p-3">
+<div class="w-full max-w-sm h-full max-h-[750px] bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col relative">
+
+  <!-- ======================= SCREEN 1: LOGIN (ORIGINAL INTERFACE) ======================= -->
+  <div id="screen-login" class="screen active flex-col h-full">
+    <div class="flex-1 overflow-auto pb-20">
+      <div class="bg-gradient-to-br from-red-700 via-red-600 to-red-800 pt-10 pb-14 px-6 relative overflow-hidden">
+        <div class="relative z-10">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg"><svg class="w-7 h-7 text-red-700" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/></svg></div>
+            <div><h1 class="text-2xl font-bold text-white">BloodBridge</h1><p class="text-red-200 text-sm">Connecting blood, saving lives</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 -mt-8 relative z-20">
+        <div class="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+          <h2 class="text-lg font-bold text-gray-800 mb-4">Welcome Back</h2>
+          
+          <!-- Dynamic Fields based on Role (Hidden Logic) -->
+          <div id="donor-fields">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-600 mb-2">Registered Donor Name</label>
+              <input type="text" id="donor-name-input" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl" placeholder="Enter your registered name">
+              <p class="text-xs text-gray-400 mt-1">*Hospital registered donors only</p>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-600 mb-2">Your Blood Group</label>
+              <select id="donor-bloodgroup" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl bg-white">
+                <option value="A+">A+</option><option value="A-">A-</option><option value="B+">B+</option><option value="B-">B-</option>
+                <option value="O+">O+</option><option value="O-">O-</option><option value="AB+">AB+</option><option value="AB-">AB-</option>
+              </select>
+            </div>
+          </div>
+          <div id="hospital-fields" class="hidden">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-600 mb-2">Institution Name</label>
+              <input type="text" id="hospital-name-input" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl" placeholder="Enter hospital name">
+              <p class="text-xs text-gray-400 mt-1">*Required</p>
+            </div>
+          </div>
+          <div id="bloodbank-fields" class="hidden">
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-600 mb-2">Institution Name</label>
+              <input type="text" id="bloodbank-name-input" class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl" placeholder="Enter blood bank name">
+              <p class="text-xs text-gray-400 mt-1">*Required</p>
+            </div>
+          </div>
+
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-gray-600 mb-3">I am a</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button class="role-card selected flex flex-col items-center p-3 border-2 border-red-600 rounded-xl bg-red-50" data-role="donor"><svg class="w-6 h-6 text-red-700 mb-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/></svg><span class="text-xs font-semibold">Donor</span></button>
+              <button class="role-card flex flex-col items-center p-3 border-2 border-gray-200 rounded-xl" data-role="hospital"><svg class="w-6 h-6 text-gray-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span class="text-xs font-semibold">Hospital</span></button>
+              <button class="role-card flex flex-col items-center p-3 border-2 border-gray-200 rounded-xl" data-role="bloodbank"><svg class="w-6 h-6 text-gray-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M3 7l9-4 9 4M4 10h16v11H4V10z"/></svg><span class="text-xs font-semibold">Blood Bank</span></button>
+            </div>
+          </div>
+          <button onclick="handleContinueLogin()" class="w-full bg-gradient-to-r from-red-700 to-red-600 text-white py-3.5 rounded-xl font-semibold shadow-lg shadow-red-200 hover:shadow-xl transition-all">Continue</button>
+        </div>
+        <p class="text-center text-xs text-gray-400 mt-4">By continuing, you agree to our Terms & Privacy Policy</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================= SCREEN 2: DONOR ALERT ======================= -->
+  <div id="screen-alert" class="screen flex-col h-full">
+    <div class="flex-1 overflow-auto pb-20">
+      <div class="bg-white px-5 py-4 border-b sticky top-0 z-10 shadow-sm"><div class="flex justify-between"><div class="flex gap-2"><div class="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center"><svg class="w-5 h-5 text-red-700" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/></svg></div><span class="font-bold">BloodBridge</span></div><button class="w-9 h-9 bg-gray-100 rounded-full"><svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></button></div></div>
+      <div class="bg-red-700 px-5 py-3"><div class="flex items-center gap-2 text-white"><div class="relative"><div class="w-3 h-3 bg-white rounded-full urgency-pulse"></div></div><span class="text-sm font-semibold">Emergency Request Nearby</span></div></div>
+      <div id="donor-alert-card-container" class="px-5 py-4"></div>
+      <div class="px-5 pb-4"><p class="text-gray-500 text-sm font-medium mb-3">Other active requests (matching blood group)</p><div id="requests-container" class="space-y-2"></div></div>
+    </div>
+  </div>
+
+  <!-- SCREEN 3: DONOR ACCEPTANCE -->
+  <div id="screen-donor" class="screen flex-col h-full"><div class="flex-1 overflow-auto pb-20"><div class="bg-gradient-to-br from-green-600 to-green-700 px-5 pt-8 pb-12 text-center relative"><div class="w-16 h-16 bg-white rounded-full mx-auto mb-4 flex items-center justify-center"><svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></div><h2 class="text-white text-xl font-bold">Request Accepted!</h2><p id="confirmation-text" class="text-green-100">You can save a life today.</p></div><div class="px-5 -mt-6 relative z-10"><div id="donor-hospital-card" class="bg-white rounded-2xl shadow-xl p-5 mb-4"></div><div class="bg-white rounded-2xl shadow-lg p-5 mb-4"><h4 class="font-bold text-gray-800 mb-3 flex gap-2"><svg class="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>Safety Reminders</h4><div class="space-y-3"><div class="flex gap-3"><div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center"><svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></div><div><p class="font-medium text-sm">Eligibility Verified</p><p class="text-xs text-gray-500">Last donation: 4 months ago</p></div></div><div class="flex gap-3"><div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center"><svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div><div><p class="font-medium text-sm">Have a meal beforehand</p><p class="text-xs text-gray-500">Eat well & stay hydrated</p></div></div><div class="flex gap-3"><div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center"><svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg></div><div><p class="font-medium text-sm">Bring valid ID</p><p class="text-xs text-gray-500">Government-issued photo ID</p></div></div></div></div><button onclick="showContactModal()" class="w-full bg-gray-100 text-gray-700 py-3 rounded-xl font-medium flex items-center justify-center gap-2">📞 Contact Hospital</button></div></div></div>
+
+  <!-- SCREEN 4: NAVIGATION -->
+  <div id="screen-navigation" class="screen flex-col h-full"><div class="flex-1 overflow-auto pb-20"><div class="bg-white px-5 py-4 border-b flex justify-between items-center"><button onclick="navigateTo('donor')" class="w-9 h-9 bg-gray-100 rounded-full"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button><h2 class="font-bold">Navigation</h2><button onclick="showContactModal()" class="w-9 h-9 bg-gray-100 rounded-full"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></button></div><div class="bg-gradient-to-r from-blue-600 to-blue-700 px-5 py-4 flex justify-between text-white"><div><p class="text-blue-100 text-xs">ETA</p><p class="text-2xl font-bold">8 min</p></div><div class="text-right"><p class="text-blue-100 text-xs">Distance</p><p class="text-xl font-semibold">2.3 km</p></div></div><div class="relative bg-gray-100 h-96 mx-4 my-4 rounded-lg overflow-hidden"><iframe src="https://www.google.com/maps/embed?pb=!1m23!1m12!1m3!1d15548.225167603405!2d80.1708426034169!3d13.03208729746618!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!4m8!3e6!4m0!4m5!1s0x3a5260d5ecbd2f21%3A0x64dd2ba1af48b320!2sSRM%20Prime%20Hospital%2C%20Ramapuram%20%7C%20Multi%20Speciality%20Hospital%20%7C%2024x7%20Emergency%20Care%2C%20Bharathi%20Salai%2C%20Ramapuram%2C%20Chennai%2C%20Tamil%20Nadu%20600089!3m2!1d13.0320875!2d80.1811209!5e0!3m2!1sen!2sin!4v1770597590355!5m2!1sen!2sin" style="border:0; width:100%; height:100%;" allowfullscreen loading="lazy"></iframe></div><div class="px-5 pb-4"><div class="flex gap-3"><button onclick="showContactModal()" class="flex-1 bg-white border border-gray-200 text-gray-700 py-3 rounded-xl">Contact Hospital</button><button onclick="navigateTo('submission')" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-3 rounded-xl">Mark as Completed</button></div></div></div></div>
+
+  <!-- SCREEN 5: SUBMISSION -->
+  <div id="screen-submission" class="screen flex-col h-full"><div class="flex-1 overflow-auto pb-20"><div class="bg-white px-5 py-4 border-b flex justify-between"><button onclick="navigateTo('navigation')" class="w-9 h-9 bg-gray-100 rounded-full"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button><h2 class="font-bold">Complete Donation</h2><div class="w-9"></div></div><div class="px-5 pt-6 text-center"><div class="w-20 h-20 bg-green-100 rounded-full mx-auto mb-4 flex items-center justify-center"><svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg></div><h3 class="text-xl font-bold">Thank You for Donating!</h3></div><div class="px-5 pb-4"><form class="bg-white rounded-2xl shadow p-5"><div class="mb-4"><label class="block text-sm font-semibold">Blood Quantity Donated</label><input type="number" id="blood-quantity" class="w-full px-4 py-3 border-2 rounded-xl" value="1" min="1"></div><div class="mb-4"><label>Donation Date</label><input type="date" id="donation-date" class="w-full px-4 py-3 border-2 rounded-xl"></div><div class="mb-4"><label>Hospital/Blood Bank</label><input type="text" id="hospital-name-field" class="w-full px-4 py-3 bg-gray-50 rounded-xl" readonly></div><div class="mb-5"><label>Blood Group Donated</label><input type="text" id="blood-group-field" class="w-full px-4 py-3 bg-gray-50 rounded-xl" readonly></div><button type="button" onclick="submitDonation()" class="w-full bg-red-700 text-white py-3.5 rounded-xl font-semibold">Submit Donation</button></form></div></div></div>
+
+  <!-- SCREEN 6: AFTERCARE -->
+  <div id="screen-aftercare" class="screen flex-col h-full"><div class="flex-1 overflow-auto pb-20"><div class="bg-gradient-to-r from-green-600 to-green-700 px-5 pt-8 pb-12"><button onclick="navigateTo('dashboard')" class="w-9 h-9 bg-white/20 rounded-full mb-4"><svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button><h1 class="text-2xl font-bold">Aftercare Routine</h1></div><div class="px-5 -mt-6"><div class="bg-white rounded-2xl shadow p-5 mb-4"><h3 class="font-bold mb-3">✅ Do's</h3><ul class="space-y-2 text-sm"><li>💧 Drink plenty of fluids (2-3L)</li><li>🍎 Eat iron-rich foods (spinach, red meat)</li><li>🛌 Rest for 15 minutes after donation</li><li>🩹 Keep bandage on for 4-6 hours</li></ul></div><div class="bg-white rounded-2xl shadow p-5"><h3 class="font-bold mb-3">❌ Don'ts</h3><ul class="space-y-2 text-sm"><li>🏋️ Avoid heavy lifting 24h</li><li>🚭 No smoking or alcohol for 24h</li><li>🚗 Don't drive if feeling dizzy</li><li>🚫 Avoid hot showers for 4-6h</li></ul></div></div></div></div>
+
+  <!-- SCREEN 7: IMPACT -->
+  <div id="screen-dashboard" class="screen flex-col h-full"><div class="flex-1 overflow-auto pb-20"><div class="bg-white px-5 py-4 border-b"><h1 class="text-xl font-bold">Your Impact</h1></div><div class="px-5 py-4"><div class="bg-red-700 rounded-2xl p-5 text-white"><p class="text-4xl font-extrabold">12</p><p>Lives Saved</p><p class="text-sm mt-2">⚡ Avg response 8 min</p></div><div class="grid grid-cols-2 gap-3 mt-4"><div class="bg-white rounded-xl p-4 shadow"><div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">🏥</div><p class="font-semibold mt-2">Urgency Alerts</p></div><div class="bg-white rounded-xl p-4 shadow"><div class="w-10 h-10 bg-blue-50 rounded-lg">📍</div><p class="font-semibold mt-2">Hospital First</p></div></div></div></div></div>
+
+  <!-- SCREEN 8: HOSPITAL DASHBOARD -->
+  <div id="screen-hospital" class="screen flex-col h-full"><div class="flex-1 overflow-auto pb-20"><div class="bg-blue-700 px-5 pt-8 pb-12 text-white"><button onclick="navigateTo('login')" class="w-9 h-9 bg-white/20 rounded-full mb-4"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button><h1 class="text-2xl font-bold">Hospital Dashboard</h1></div><div class="px-5 -mt-6"><div class="bg-white rounded-2xl shadow p-5 mb-4"><h3 class="font-bold mb-3">🏥 Current Inventory</h3><div class="grid grid-cols-2 gap-2"><div class="bg-blue-50 p-2 rounded">O-: 4 units</div><div class="bg-green-50 p-2 rounded">O+: 6 units</div><div class="bg-red-50 p-2 rounded">A+: 8 units</div><div class="bg-purple-50 p-2 rounded">A-: 3 units</div><div class="bg-amber-50 p-2 rounded">B+: 7 units</div><div class="bg-indigo-50 p-2 rounded">B-: 2 units</div><div class="bg-pink-50 p-2 rounded">AB+: 5 units</div><div class="bg-gray-100 p-2 rounded">AB-: 2 units</div></div><button onclick="showBloodRequestModal()" class="w-full mt-4 bg-red-700 text-white py-3 rounded-xl">Request Blood</button></div><div id="hospital-requests-container" class="bg-white rounded-2xl shadow p-5"></div></div></div></div>
+
+  <!-- SCREEN 9: BLOOD BANK DASHBOARD -->
+  <div id="screen-bloodbank" class="screen flex-col h-full"><div class="flex-1 overflow-auto pb-20"><div class="bg-purple-700 px-5 pt-8 pb-12 text-white"><button onclick="navigateTo('login')" class="w-9 h-9 bg-white/20 rounded-full mb-4"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button><h1 class="text-2xl font-bold">Blood Bank</h1></div><div class="px-5 -mt-6"><div class="bg-white rounded-2xl shadow p-5 mb-4"><h3>📦 Full Inventory</h3><div class="grid grid-cols-2 gap-2"><div class="bg-purple-50 p-2 rounded">O-: 12</div><div class="bg-green-50 p-2 rounded">O+: 15</div><div class="bg-blue-50 p-2 rounded">A+: 18</div><div class="bg-cyan-50 p-2 rounded">A-: 9</div><div class="bg-amber-50 p-2 rounded">B+: 14</div><div class="bg-orange-50 p-2 rounded">B-: 7</div><div class="bg-pink-50 p-2 rounded">AB+: 10</div><div class="bg-gray-100 p-2 rounded">AB-: 6</div></div></div><div id="bloodbank-requests-container" class="bg-white rounded-2xl shadow p-5"></div></div></div></div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="absolute bottom-0 left-0 right-0 bg-white border-t px-2 py-2 flex justify-around shadow-lg"><button onclick="navigateTo('login')" class="nav-item flex flex-col items-center" data-screen="login"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg><span class="text-xs">Home</span></button><button onclick="navigateTo('alert')" class="nav-item flex flex-col items-center" data-screen="alert"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg><span class="text-xs">Alerts</span></button><button onclick="navigateTo('aftercare')" class="nav-item flex flex-col items-center" data-screen="aftercare"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg><span class="text-xs">Care</span></button><button onclick="navigateTo('dashboard')" class="nav-item flex flex-col items-center" data-screen="dashboard"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg><span class="text-xs">Impact</span></button></nav>
+
+  <!-- MODALS -->
+  <div id="blood-request-modal" class="modal"><div class="modal-content"><h3 class="font-bold mb-3">Request Blood</h3><select id="request-blood-type" class="w-full border p-2 rounded mb-2"><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>O+</option><option>O-</option><option>AB+</option><option>AB-</option></select><input type="number" id="request-units" placeholder="Units" class="w-full border p-2 rounded mb-2"><select id="request-urgency" class="w-full border p-2 rounded mb-2"><option>normal</option><option>urgent</option><option>critical</option></select><textarea id="request-notes" placeholder="Notes" class="w-full border p-2 rounded mb-3"></textarea><button onclick="submitBloodRequest()" class="bg-red-700 text-white py-2 rounded w-full">Submit</button><button onclick="hideBloodRequestModal()" class="mt-2 text-gray-500">Cancel</button></div></div>
+  <div id="dispatch-modal" class="modal"><div class="modal-content"><div id="dispatch-details"></div><button onclick="confirmDispatch()" class="bg-green-700 text-white py-2 rounded w-full mt-3">Confirm Dispatch</button><button onclick="hideDispatchModal()" class="mt-2 text-gray-500">Cancel</button></div></div>
+  <div id="contact-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50"><div class="bg-white rounded-2xl p-6 max-w-sm w-full"><div class="flex justify-between"><h3 class="font-bold">SRM Prime Hospital</h3><button onclick="hideContactModal()">✖</button></div><p class="text-sm mt-2">📞 +1 (555) 123-4567</p><p>✉️ blood@srmprimehospital.com</p><p>📍 Bharathi Salai, Ramapuram</p><div class="flex gap-3 mt-4"><a href="tel:+15551234567" class="flex-1 bg-green-700 text-white py-2 rounded text-center">Call</a><a href="mailto:blood@srmprimehospital.com" class="flex-1 bg-gray-200 py-2 rounded text-center">Email</a></div></div></div>
+</div>
+
+<script>
+  // Internal verified donors list (case-insensitive) - NEVER displayed to user
+  const VERIFIED_DONORS_SET = new Set(["haritha","divya","yaseen","harshita","prithinga","kavya","ariyan","keerthana","lavanya"]);
+  let currentDonor = { name: "", bloodGroup: "" };
+  let currentRole = "donor";
+  let bloodRequests = [];
+  let bloodBankInventory = { 'O-':12,'O+':15,'A+':18,'A-':9,'B+':14,'B-':7,'AB+':10,'AB-':6 };
+  const hospitalDetails = { 'SRM Prime Hospital': { address:'Bharathi Salai, Ramapuram, Chennai', phone:'+1 (555) 123-4567', email:'blood@srmprimehospital.com', distance:'2.3 km' } };
+
+  function saveRequests() { localStorage.setItem('bloodRequests', JSON.stringify(bloodRequests)); }
+  function loadRequests() { const saved = localStorage.getItem('bloodRequests'); if(saved) bloodRequests = JSON.parse(saved); else bloodRequests = []; }
+  loadRequests();
+
+  function toggleRoleFields(role) {
+    document.getElementById('donor-fields').classList.add('hidden');
+    document.getElementById('hospital-fields').classList.add('hidden');
+    document.getElementById('bloodbank-fields').classList.add('hidden');
+    if(role === 'donor') document.getElementById('donor-fields').classList.remove('hidden');
+    else if(role === 'hospital') document.getElementById('hospital-fields').classList.remove('hidden');
+    else if(role === 'bloodbank') document.getElementById('bloodbank-fields').classList.remove('hidden');
+  }
+
+  function handleContinueLogin() {
+    const selectedRole = document.querySelector('.role-card.selected').dataset.role;
+    currentRole = selectedRole;
+    
+    if(selectedRole === 'donor') {
+      const donorNameRaw = document.getElementById('donor-name-input').value.trim();
+      const donorNameLower = donorNameRaw.toLowerCase();
+      const donorGroup = document.getElementById('donor-bloodgroup').value;
+      if(donorNameRaw === "") { alert("Please enter your registered donor name."); return; }
+      if(!VERIFIED_DONORS_SET.has(donorNameLower)) {
+        alert("Access denied: You are not a registered donor with our hospital network.");
+        return;
+      }
+      currentDonor = { name: donorNameRaw, bloodGroup: donorGroup };
+      renderDonorAlerts();
+      navigateTo('alert');
+    } 
+    else if(selectedRole === 'hospital') {
+      const instName = document.getElementById('hospital-name-input').value.trim();
+      if(instName === "") { alert("Please enter your hospital/institution name."); return; }
+      navigateTo('hospital');
+    }
+    else if(selectedRole === 'bloodbank') {
+      const instName = document.getElementById('bloodbank-name-input').value.trim();
+      if(instName === "") { alert("Please enter your blood bank institution name."); return; }
+      navigateTo('bloodbank');
+    }
+  }
+
+  function renderDonorAlerts() {
+    const container = document.getElementById('donor-alert-card-container');
+    const otherContainer = document.getElementById('requests-container');
+    if(!container) return;
+    // Filter: only requests that are pending/denied, matching blood group, NOT accepted, AND NOT dispatched (status dispatched means blood bank already handled)
+    let matchingRequests = bloodRequests.filter(req => 
+      (req.status === 'bloodbank_denied' || (req.status === 'pending' && req.workflow === 'bloodbank_first')) && 
+      req.bloodType === currentDonor.bloodGroup && 
+      !req.acceptedByDonor &&
+      req.status !== 'dispatched'
+    );
+    matchingRequests = matchingRequests.filter(req => !req.acceptedByDonor);
+    if(matchingRequests.length === 0) { container.innerHTML = '<div class="bg-white rounded-2xl p-5 text-center text-gray-500 shadow">✨ No active requests matching your blood group.</div>'; otherContainer.innerHTML = ''; return; }
+    const mainReq = matchingRequests[0];
+    const hospital = hospitalDetails[mainReq.hospital] || hospitalDetails['SRM Prime Hospital'];
+    container.innerHTML = `
+      <div class="bg-white rounded-2xl shadow-xl border border-red-100 overflow-hidden">
+        <div class="bg-red-700 px-5 py-3 flex justify-between"><span class="text-white font-bold">CRITICAL URGENCY</span><div class="bg-white/20 px-2 py-1 rounded text-white text-xs" id="timer">23:45</div></div>
+        <div class="p-5"><div class="flex justify-between"><div><p class="text-gray-500 text-sm">Blood Group Needed</p><div class="flex items-center gap-2"><span class="text-4xl font-extrabold text-red-700">${mainReq.bloodType}</span><span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">${mainReq.urgency}</span></div></div><div class="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center"><svg class="w-10 h-10 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/></svg></div></div>
+        <div class="bg-gray-50 rounded-xl p-4 my-4"><div class="flex gap-3"><div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center">📍</div><div><p class="font-semibold">${mainReq.hospital}</p><p class="text-xs text-gray-500">${hospital.address}</p><span class="bg-green-100 text-green-700 text-xs px-2 rounded">${hospital.distance} away</span></div></div></div>
+        <div class="flex justify-between mb-4"><span>Units needed:</span><span class="font-bold">${mainReq.units} units</span></div>
+        <div class="bg-blue-50 rounded-lg p-3 text-xs text-blue-700 mb-4">Patient details shared after acceptance.</div>
+        <div class="flex gap-3"><button onclick="declineDonorRequest()" class="flex-1 bg-gray-100 py-3 rounded-xl">Decline</button><button onclick="acceptDonorRequestSpecific(${mainReq.id})" class="flex-1 bg-red-700 text-white py-3 rounded-xl shadow">Accept & Help</button></div></div>
+      </div>`;
+    otherContainer.innerHTML = matchingRequests.slice(1).map(req => `<div class="bg-white rounded-xl p-3 border mb-2 shadow-sm"><div class="flex justify-between"><span class="font-bold">${req.bloodType}</span><span>${req.hospital}</span></div><div class="text-xs text-gray-500">${hospitalDetails[req.hospital]?.distance} • ${req.units} units</div></div>`).join('');
+  }
+
+  function declineDonorRequest() { alert("We'll notify other donors."); navigateTo('dashboard'); }
+  
+  function acceptDonorRequestSpecific(requestId) {
+    const reqIndex = bloodRequests.findIndex(r => r.id === requestId);
+    if(reqIndex === -1) return;
+    // CRITICAL: Check if already accepted or dispatched before proceeding
+    if(bloodRequests[reqIndex].acceptedByDonor) { 
+      alert("❌ This request has already been accepted by another donor. The blood is already on the way or dispatched.");
+      renderDonorAlerts(); // refresh to remove stale request
+      return; 
+    }
+    if(bloodRequests[reqIndex].status === 'dispatched') {
+      alert("❌ This request has already been fulfilled by the blood bank. No longer available.");
+      renderDonorAlerts();
+      return;
+    }
+    // Mark as accepted immediately to prevent race conditions
+    bloodRequests[reqIndex].acceptedByDonor = true;
+    bloodRequests[reqIndex].status = 'donor_accepted';
+    bloodRequests[reqIndex].acceptedDonorName = currentDonor.name;
+    saveRequests();
+    
+    const hospital = hospitalDetails[bloodRequests[reqIndex].hospital];
+    document.getElementById('donor-hospital-card').innerHTML = `
+      <div class="flex gap-3 mb-4"><div class="w-14 h-14 bg-red-50 rounded-xl flex items-center justify-center">🏥</div><div><h3 class="font-bold">${bloodRequests[reqIndex].hospital}</h3><p>${hospital.address}</p><p class="text-xs text-gray-500">📞 ${hospital.phone}</p></div></div>
+      <div class="map-placeholder h-36 mb-3 rounded-lg overflow-hidden"><iframe src="https://www.google.com/maps/embed?pb=!1m23!1m12!1m3!1d15548.225167603405!2d80.1708426034169!3d13.03208729746618!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!4m8!3e6!4m0!4m5!1s0x3a5260d5ecbd2f21%3A0x64dd2ba1af48b320!2sSRM%20Prime%20Hospital%2C%20Ramapuram%20%7C%20Multi%20Speciality%20Hospital%20%7C%2024x7%20Emergency%20Care%2C%20Bharathi%20Salai%2C%20Ramapuram%2C%20Chennai%2C%20Tamil%20Nadu%20600089!3m2!1d13.0320875!2d80.1811209!5e0!3m2!1sen!2sin!4v1770597590355!5m2!1sen!2sin" style="width:100%; height:100%;" allowfullscreen loading="lazy"></iframe></div>
+      <button onclick="navigateTo('navigation')" class="w-full bg-blue-700 text-white py-3 rounded-xl mt-2">Start Navigation</button>`;
+    document.getElementById('hospital-name-field').value = bloodRequests[reqIndex].hospital;
+    document.getElementById('blood-group-field').value = bloodRequests[reqIndex].bloodType;
+    navigateTo('donor');
+  }
+
+  function submitBloodRequest() {
+    const bloodType = document.getElementById('request-blood-type').value;
+    const units = parseInt(document.getElementById('request-units').value);
+    const urgency = document.getElementById('request-urgency').value;
+    const notes = document.getElementById('request-notes').value;
+    const newReq = { id: Date.now(), bloodType, units, urgency, notes, hospital:'SRM Prime Hospital', timestamp: new Date().toISOString(), status:'pending', workflow:'bloodbank_first', acceptedByDonor:false };
+    bloodRequests.push(newReq);
+    saveRequests();
+    hideBloodRequestModal();
+    loadHospitalRequests();
+    alert("Blood request sent to blood bank.");
+  }
+
+  function loadHospitalRequests() {
+    const container = document.getElementById('hospital-requests-container');
+    if(!container) return;
+    const myReqs = bloodRequests.filter(r => r.hospital === 'SRM Prime Hospital');
+    container.innerHTML = myReqs.map(r => `<div class="border-b py-3"><div class="flex justify-between"><span class="font-bold">${r.bloodType}</span><span>${r.units} units</span></div><span class="text-xs bg-gray-100 px-2 rounded">${r.status}</span> ${r.status === 'dispatched' ? '<span class="text-green-600 text-xs">✅ Dispatched</span>' : r.status === 'donor_accepted' ? '<span class="text-blue-600">Donor on the way</span>' : ''}</div>`).join('');
+  }
+
+  function loadBloodBankRequests() {
+    const container = document.getElementById('bloodbank-requests-container');
+    if(!container) return;
+    const pending = bloodRequests.filter(r => r.status === 'pending' && r.workflow === 'bloodbank_first' && !r.acceptedByDonor);
+    container.innerHTML = pending.map(req => `
+      <div class="border rounded-xl p-3 mb-3 shadow-sm"><div class="flex justify-between"><span class="font-bold">${req.bloodType}</span><span>${req.units} units</span></div><p class="text-sm">🏥 ${req.hospital}</p><p class="text-xs text-gray-500">${req.notes || ''}</p><div class="flex gap-2 mt-2"><button onclick="fulfillRequest(${req.id})" class="bg-green-700 text-white px-3 py-1 rounded text-sm">Dispatch</button><button onclick="declineRequestBank(${req.id})" class="bg-gray-300 px-3 py-1 rounded text-sm">Decline</button></div></div>
+    `).join('');
+  }
+
+  function fulfillRequest(reqId) {
+    const req = bloodRequests.find(r => r.id === reqId);
+    if(!req) return;
+    if(req.acceptedByDonor) {
+      alert("❌ This request has already been accepted by a donor. Cannot dispatch from blood bank.");
+      loadBloodBankRequests();
+      return;
+    }
+    if(bloodBankInventory[req.bloodType] >= req.units) {
+      bloodBankInventory[req.bloodType] -= req.units;
+      req.status = 'dispatched';
+      req.dispatchTime = new Date().toISOString();
+      saveRequests();
+      loadBloodBankRequests();
+      loadHospitalRequests();
+      // Also re-render donor alerts so this request disappears from donor view
+      if(currentRole === 'donor') renderDonorAlerts();
+      alert(`✅ ${req.units} units of ${req.bloodType} dispatched to ${req.hospital}. Hospital location & contact shared with blood bank.`);
+    } else { alert(`❌ Insufficient ${req.bloodType}. Only ${bloodBankInventory[req.bloodType]} units left.`); }
+  }
+
+  function declineRequestBank(reqId) {
+    const reqIndex = bloodRequests.findIndex(r => r.id === reqId);
+    if(reqIndex !== -1) {
+      bloodRequests[reqIndex].status = 'bloodbank_denied';
+      saveRequests();
+      loadBloodBankRequests();
+      if(currentRole === 'donor') renderDonorAlerts();
+      alert("Request declined. Hospital location & contact details forwarded to matching donors.");
+    }
+  }
+
+  function submitDonation() { alert("Donation recorded! Thank you for saving lives."); navigateTo('dashboard'); }
+  function showBloodRequestModal() { document.getElementById('blood-request-modal').classList.add('active'); }
+  function hideBloodRequestModal() { document.getElementById('blood-request-modal').classList.remove('active'); }
+  function hideDispatchModal() { document.getElementById('dispatch-modal').classList.remove('active'); }
+  function showContactModal() { document.getElementById('contact-modal').classList.remove('hidden'); }
+  function hideContactModal() { document.getElementById('contact-modal').classList.add('hidden'); }
+  function navigateTo(screen) { 
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); 
+    document.getElementById(`screen-${screen}`).classList.add('active'); 
+    if(screen === 'alert' && currentRole==='donor') renderDonorAlerts(); 
+    else if(screen === 'hospital') loadHospitalRequests(); 
+    else if(screen === 'bloodbank') loadBloodBankRequests(); 
+  }
+
+  window.handleContinueLogin = handleContinueLogin;
+  window.acceptDonorRequestSpecific = acceptDonorRequestSpecific;
+  window.declineDonorRequest = declineDonorRequest;
+  window.submitBloodRequest = submitBloodRequest;
+  window.fulfillRequest = fulfillRequest;
+  window.declineRequestBank = declineRequestBank;
+  window.submitDonation = submitDonation;
+  window.navigateTo = navigateTo;
+  window.showBloodRequestModal = showBloodRequestModal;
+  window.hideBloodRequestModal = hideBloodRequestModal;
+  window.showContactModal = showContactModal;
+  window.hideContactModal = hideContactModal;
+  window.hideDispatchModal = hideDispatchModal;
+
+  let timerSeconds = 23*60+45; setInterval(()=>{ if(timerSeconds>0){ timerSeconds--; const m=Math.floor(timerSeconds/60), s=timerSeconds%60; if(document.getElementById('timer')) document.getElementById('timer').innerText=`${m}:${s.toString().padStart(2,'0')}`; } },1000);
+  
+  document.querySelectorAll('.role-card').forEach(card=>{ card.addEventListener('click',()=>{ document.querySelectorAll('.role-card').forEach(c=>c.classList.remove('selected')); card.classList.add('selected'); const role = card.dataset.role; toggleRoleFields(role); currentRole = role; }); });
+  toggleRoleFields('donor');
+  document.getElementById('donation-date').valueAsDate = new Date();
+</script>
+</body>
+</html>
